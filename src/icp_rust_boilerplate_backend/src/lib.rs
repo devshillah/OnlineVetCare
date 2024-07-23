@@ -919,6 +919,117 @@ fn get_pet_adoptions() -> Result<Vec<PetAdoption>, MessageEnum> {
     })
 }
 
+#[ic_cdk::update]
+fn update_user_role(
+    user_id: u64,
+    new_role: UserRole,
+    user_payload: AuthenticatedUserPayload,
+) -> Result<User, MessageEnum> {
+    // Authenticate the user
+    let user = authenticate_user(user_payload)?;
+
+    // Check if the user is an admin
+    if user.role != UserRole::Admin {
+        return Err(MessageEnum::UnAuthorized(
+            "You do not have permission to update user roles".to_string(),
+        ));
+    }
+
+    // Find the user and update their role
+    USER_STORAGE.with(|storage| {
+        let mut storage = storage.borrow_mut();
+        if let Some(mut user) = storage.remove(&user_id) {
+            user.role = new_role;
+            storage.insert(user_id, user.clone());
+            Ok(user)
+        } else {
+            Err(MessageEnum::NotFound("User not found".to_string()))
+        }
+    })
+}
+
+#[ic_cdk::update]
+fn delete_user(user_id: u64, user_payload: AuthenticatedUserPayload) -> Result<(), MessageEnum> {
+    // Authenticate the user
+    let user = authenticate_user(user_payload)?;
+
+    // Check if the user is an admin
+    if user.role != UserRole::Admin {
+        return Err(MessageEnum::UnAuthorized(
+            "You do not have permission to delete users".to_string(),
+        ));
+    }
+
+    // Remove the user from storage
+    USER_STORAGE.with(|storage| {
+        let mut storage = storage.borrow_mut();
+        if storage.remove(&user_id).is_some() {
+            Ok(())
+        } else {
+            Err(MessageEnum::NotFound("User not found".to_string()))
+        }
+    })
+}
+
+#[ic_cdk::update]
+fn delete_pet(pet_id: u64, user_payload: AuthenticatedUserPayload) -> Result<(), MessageEnum> {
+    // Authenticate the user
+    let user = authenticate_user(user_payload)?;
+
+    // Check if the user is an admin or the pet owner
+    if user.role != UserRole::Admin && user.role != UserRole::PetOwner {
+        return Err(MessageEnum::UnAuthorized(
+            "You do not have permission to delete pets".to_string(),
+        ));
+    }
+
+    // Remove the pet from storage
+    PET_STORAGE.with(|storage| {
+        let mut storage = storage.borrow_mut();
+        if storage.remove(&pet_id).is_some() {
+            Ok(())
+        } else {
+            Err(MessageEnum::NotFound("Pet not found".to_string()))
+        }
+    })
+}
+
+#[ic_cdk::update]
+fn delete_appointment(appointment_id: u64, user_payload: AuthenticatedUserPayload) -> Result<(), MessageEnum> {
+    // Authenticate the user
+    let user = authenticate_user(user_payload)?;
+
+    // Check if the user is an admin or the pet owner
+    if user.role != UserRole::Admin && user.role != UserRole::PetOwner {
+        return Err(MessageEnum::UnAuthorized(
+            "You do not have permission to delete appointments".to_string(),
+        ));
+    }
+
+    // Remove the appointment from storage
+    APPOINTMENT_STORAGE.with(|storage| {
+        let mut storage = storage.borrow_mut();
+        if storage.remove(&appointment_id).is_some() {
+            Ok(())
+        } else {
+            Err(MessageEnum::NotFound("Appointment not found".to_string()))
+        }
+    })
+}
+
+#[ic_cdk::query]
+fn search_user_by_email(email: String) -> Result<User, MessageEnum> {
+    // Search for the user by email
+    USER_STORAGE.with(|storage| {
+        storage
+            .borrow()
+            .iter()
+            .find(|(_, user)| user.email == email)
+            .map(|(_, user)| user.clone())
+            .ok_or_else(|| MessageEnum::NotFound("User not found".to_string()))
+    })
+}
+
 fn current_time() -> u64 {
     time()
 }
