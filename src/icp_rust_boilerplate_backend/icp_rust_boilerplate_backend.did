@@ -1,73 +1,124 @@
-type AuthenticatedUserPayload = record { username : text; role : UserRole };
-type Delivery = record {
+type Appointment = record {
   id : nat64;
   status : text;
-  delivery_person_id : nat64;
+  veterinarian_id : nat64;
+  pet_id : nat64;
+  date : nat64;
   created_at : nat64;
-  order_id : nat64;
 };
-type DeliveryPayload = record { delivery_person_id : nat64; order_id : nat64 };
-type MenuItem = record {
+type AppointmentPayload = record {
+  veterinarian_id : nat64;
+  pet_id : nat64;
+  date : nat64;
+};
+type AuthenticatedUserPayload = record { username : text; role : UserRole };
+type HealthRecord = record {
   id : nat64;
-  restaurant_id : nat64;
-  quantity_kg : nat64;
-  name : text;
-  description : text;
+  veterinarian_id : nat64;
+  pet_id : nat64;
   created_at : nat64;
-  price : float64;
+  "record" : text;
 };
-type MenuItemPayload = record {
-  restaurant_id : nat64;
-  quantity_kg : nat64;
-  name : text;
-  description : text;
-  price : float64;
+type HealthRecordPayload = record {
+  veterinarian_id : nat64;
+  pet_id : nat64;
+  "record" : text;
 };
-type Message = variant {
+type Message = record {
+  id : nat64;
+  content : text;
+  recipient_id : nat64;
+  created_at : nat64;
+  sender_id : nat64;
+};
+type MessageEnum = variant {
   Error : text;
   InvalidPayload : text;
   NotFound : text;
   Success : text;
   UnAuthorized : text;
 };
-type Order = record {
+type MessagePayload = record {
+  content : text;
+  recipient_id : nat64;
+  sender_id : nat64;
+};
+type Notification = record {
+  id : nat64;
+  created_at : nat64;
+  user_id : nat64;
+  message : text;
+};
+type Payment = record {
   id : nat64;
   status : text;
-  restaurant_id : nat64;
-  total_bill : float64;
+  appointment_id : nat64;
   created_at : nat64;
-  customer_id : nat64;
-  items : vec nat64;
+  user_id : nat64;
+  amount : float64;
 };
-type OrderPayload = record {
-  restaurant_id : nat64;
-  customer_id : nat64;
-  items : vec nat64;
+type PaymentPayload = record {
+  appointment_id : nat64;
+  user_id : nat64;
+  amount : float64;
 };
-type Restaurant = record {
+type Pet = record {
   id : nat64;
+  age : nat8;
   name : text;
-  description : text;
   created_at : nat64;
   owner_id : nat64;
-  address : text;
+  breed : text;
+  species : text;
 };
-type RestaurantPayload = record {
+type PetAdoption = record {
+  id : nat64;
+  status : text;
+  adopter_id : nat64;
+  pet_id : nat64;
+  created_at : nat64;
+};
+type PetAdoptionPayload = record { adopter_id : nat64; pet_id : nat64 };
+type PetPayload = record {
+  age : nat8;
   name : text;
-  description : text;
   owner_id : nat64;
-  address : text;
+  breed : text;
+  species : text;
 };
-type Result = variant { Ok : Delivery; Err : Message };
-type Result_1 = variant { Ok : MenuItem; Err : Message };
-type Result_2 = variant { Ok : Order; Err : Message };
-type Result_3 = variant { Ok : Restaurant; Err : Message };
-type Result_4 = variant { Ok : User; Err : Message };
-type Result_5 = variant { Ok : vec Delivery; Err : Message };
-type Result_6 = variant { Ok : vec MenuItem; Err : Message };
-type Result_7 = variant { Ok : vec Order; Err : Message };
-type Result_8 = variant { Ok : vec Restaurant; Err : Message };
-type Result_9 = variant { Ok : vec User; Err : Message };
+type Prescription = record {
+  id : nat64;
+  dosage : text;
+  veterinarian_id : nat64;
+  medication : text;
+  pet_id : nat64;
+  created_at : nat64;
+};
+type PrescriptionPayload = record {
+  dosage : text;
+  veterinarian_id : nat64;
+  medication : text;
+  pet_id : nat64;
+};
+type Result = variant { Ok : HealthRecord; Err : MessageEnum };
+type Result_1 = variant { Ok : Pet; Err : MessageEnum };
+type Result_10 = variant { Ok : vec Payment; Err : MessageEnum };
+type Result_11 = variant { Ok : vec PetAdoption; Err : MessageEnum };
+type Result_12 = variant { Ok : vec Pet; Err : MessageEnum };
+type Result_13 = variant { Ok : vec Prescription; Err : MessageEnum };
+type Result_14 = variant { Ok : vec User; Err : MessageEnum };
+type Result_15 = variant { Ok : Payment; Err : MessageEnum };
+type Result_16 = variant { Ok : Appointment; Err : MessageEnum };
+type Result_17 = variant { Ok : Message; Err : MessageEnum };
+type Result_18 = variant { Ok : Notification; Err : MessageEnum };
+type Result_2 = variant { Ok : PetAdoption; Err : MessageEnum };
+type Result_3 = variant { Ok : Prescription; Err : MessageEnum };
+type Result_4 = variant { Ok : User; Err : MessageEnum };
+type Result_5 = variant { Ok; Err : MessageEnum };
+type Result_6 = variant { Ok : vec Appointment; Err : MessageEnum };
+type Result_7 = variant { Ok : vec HealthRecord; Err : MessageEnum };
+type Result_8 = variant { Ok : vec Message; Err : MessageEnum };
+type Result_9 = variant { Ok : vec Notification; Err : MessageEnum };
 type User = record {
   id : nat64;
   username : text;
@@ -82,20 +133,37 @@ type UserPayload = record {
   email : text;
   phone_number : text;
 };
-type UserRole = variant { RestaurantOwner; Customer; DeliveryPerson };
+type UserRole = variant { PetOwner; Admin; Veterinarian };
 service : {
-  accept_delivery : (nat64, AuthenticatedUserPayload) -> (Result);
-  create_delivery : (DeliveryPayload) -> (Result);
-  create_menu_item : (MenuItemPayload, AuthenticatedUserPayload) -> (Result_1);
-  create_order : (OrderPayload) -> (Result_2);
-  create_restaurant : (RestaurantPayload, AuthenticatedUserPayload) -> (
+  add_health_record : (HealthRecordPayload, AuthenticatedUserPayload) -> (
+      Result,
+    );
+  add_pet : (PetPayload, AuthenticatedUserPayload) -> (Result_1);
+  add_pet_for_adoption : (PetAdoptionPayload, AuthenticatedUserPayload) -> (
+      Result_2,
+    );
+  add_prescription : (PrescriptionPayload, AuthenticatedUserPayload) -> (
       Result_3,
     );
   create_user : (UserPayload) -> (Result_4);
-  get_deliveries : () -> (Result_5) query;
-  get_menu_items : () -> (Result_6) query;
-  get_orders : () -> (Result_7) query;
-  get_restaurants : () -> (Result_8) query;
-  get_users : () -> (Result_9) query;
-  mark_delivery_as_delivered : (nat64, AuthenticatedUserPayload) -> (Result);
+  delete_appointment : (nat64, AuthenticatedUserPayload) -> (Result_5);
+  delete_pet : (nat64, AuthenticatedUserPayload) -> (Result_5);
+  delete_user : (nat64, AuthenticatedUserPayload) -> (Result_5);
+  get_appointments : () -> (Result_6) query;
+  get_health_records : () -> (Result_7) query;
+  get_messages : () -> (Result_8) query;
+  get_notifications : () -> (Result_9) query;
+  get_payments : () -> (Result_10) query;
+  get_pet_adoptions : () -> (Result_11) query;
+  get_pets : () -> (Result_12) query;
+  get_prescriptions : () -> (Result_13) query;
+  get_users : () -> (Result_14) query;
+  process_payment : (PaymentPayload) -> (Result_15);
+  schedule_appointment : (AppointmentPayload, AuthenticatedUserPayload) -> (
+      Result_16,
+    );
+  search_user_by_email : (text) -> (Result_4) query;
+  send_message : (MessagePayload) -> (Result_17);
+  send_notification : (nat64, text, AuthenticatedUserPayload) -> (Result_18);
+  update_user_role : (nat64, UserRole, AuthenticatedUserPayload) -> (Result_4);
 }
